@@ -5,32 +5,31 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 
-contract DegenToken is ERC20, Ownable, ERC20Burnable {
+contract CryptoToken is ERC20, Ownable, ERC20Burnable {
 
-    struct Item {
-        string name;
-        uint8 itemId;
-        uint256 price;
+    struct Product {
+        string productName;
+        uint8 productId;
+        uint256 productPrice;
     }
-    mapping (uint8=>Item) public items;
-    uint8 public tokenId;
+    mapping (uint8 => Product) public products;
+    uint8 public nextProductId;
     
-    event ItemPurchased(address indexed buyer, uint8 itemId, string itemName, uint256 price);
-    event GameOutcome(address indexed player, uint256 num, bool won, string result);
+    event ProductBought(address indexed buyer, uint8 productId, string productName, uint256 productPrice);
+    event GameResult(address indexed player, uint256 generatedNumber, bool victory, string outcome);
 
-    constructor (address initialOwner, uint tokenSupply) ERC20("Degen", "DGN") Ownable(initialOwner) {
-        mint(initialOwner, tokenSupply);
+    constructor (address initialOwner, uint initialSupply) ERC20("Crypto", "CRT") Ownable(initialOwner) {
+        mint(initialOwner, initialSupply);
         
-        items[1] = Item("Novice Navigator",1, 100);
-        items[2]=Item("Mythic Maverick", 2, 700);
-        items[3]=Item("Celestial Crusher", 3, 1200);
-        items[4]=Item("Astral Ace", 4, 2200);
-        items[5]=Item("Divine Dominator", 5, 2400);
-        tokenId=6;
-
+        products[1] = Product("Novice Navigator", 1, 100);
+        products[2] = Product("Mythic Maverick", 2, 700);
+        products[3] = Product("Celestial Crusher", 3, 1200);
+        products[4] = Product("Astral Ace", 4, 2200);
+        products[5] = Product("Divine Dominator", 5, 2400);
+        nextProductId = 6;
     }
 
-    function decimals() override public pure returns (uint8){
+    function decimals() override public pure returns (uint8) {
         return 0;
     }
 
@@ -42,56 +41,55 @@ contract DegenToken is ERC20, Ownable, ERC20Burnable {
 
     // Transferring tokens
 
-    function transferToken(address _recipient, uint _amount) external {
-        require(balanceOf(msg.sender)>=_amount, "Insufficient balance");
-        transfer(_recipient, _amount);
+    function sendToken(address recipient, uint amount) external {
+        require(balanceOf(msg.sender) >= amount, "Insufficient balance");
+        transfer(recipient, amount);
     }
 
     // Redeeming tokens
 
-    function welcomeBonus() public {
+    function claimWelcomeBonus() public {
         require(balanceOf(msg.sender) == 0, "You've already claimed your welcome bonus");
         _mint(msg.sender, 50);
     }
 
-    function addItem(string memory _name, uint256 _price) public onlyOwner {
-        items[tokenId] = Item(_name, tokenId,_price);
-        tokenId++;
+    function addProduct(string memory name, uint256 price) public onlyOwner {
+        products[nextProductId] = Product(name, nextProductId, price);
+        nextProductId++;
     } 
 
-    function isLessThanFive(bool _prediction, uint256 _betAmount) public {
-        uint randomNumber = uint(keccak256(abi.encodePacked(block.timestamp, msg.sender))) % 10;
+    function betOnNumber(bool guess, uint256 betAmount) public {
+        uint randomNum = uint(keccak256(abi.encodePacked(block.timestamp, msg.sender))) % 10;
 
-        if (_prediction ==(randomNumber<5)) {
-            _mint(msg.sender, _betAmount*2);
-            emit GameOutcome(msg.sender, randomNumber, true, "won");
-
+        if (guess == (randomNum < 5)) {
+            _mint(msg.sender, betAmount * 2);
+            emit GameResult(msg.sender, randomNum, true, "won");
         } else {
-            burn(_betAmount);
-            emit GameOutcome(msg.sender, randomNumber, false, "lost");
+            burn(betAmount);
+            emit GameResult(msg.sender, randomNum, false, "lost");
         }
     }
     
-    function purchaseItem(uint8 _itemId) external {
-        require(items[_itemId].price != 0, "Item not found");
-        require(balanceOf(msg.sender) >= items[_itemId].price, "Insufficient balance");
+    function buyProduct(uint8 productId) external {
+        require(products[productId].productPrice != 0, "Product not found");
+        require(balanceOf(msg.sender) >= products[productId].productPrice, "Insufficient balance");
 
-        burn(items[_itemId].price);
+        burn(products[productId].productPrice);
 
-        emit ItemPurchased(msg.sender, _itemId, items[_itemId].name, items[_itemId].price);
+        emit ProductBought(msg.sender, productId, products[productId].productName, products[productId].productPrice);
     }
 
     // Checking token balance
 
-    function getBalance() external view returns(uint256){
+    function checkBalance() external view returns(uint256) {
         return balanceOf(msg.sender);
     }
 
     // Burning tokens
 
-    function burnToken(uint _amount) external {
-        require(balanceOf(msg.sender)>=_amount, "Insufficient amount");
-        burn(_amount);
+    function destroyToken(uint amount) external {
+        require(balanceOf(msg.sender) >= amount, "Insufficient amount");
+        burn(amount);
     }
 
 }
